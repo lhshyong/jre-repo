@@ -1,5 +1,7 @@
 # jre-repo
 Repo JRE 
+Download zip package from https://adoptium.net/
+Extract into folder
 
 
 # Change log
