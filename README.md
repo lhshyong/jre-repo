@@ -6,3 +6,5 @@ Extract into folder
 
 # Change log
 202406 Update JRE to 17.0.11_9
+
+202601 Add JRE 21.0.9
