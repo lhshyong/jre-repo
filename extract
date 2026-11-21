@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Usage: ./extract <path/to/archive>
+# Extracts archive → dist/<platform>/v<major>/newjre
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+[[ $# -eq 1 ]] || { echo "usage: extract <path>"; exit 1; }
+
+SRC="$1"
+[[ -f "$SRC" ]] || { echo "not found: $SRC"; exit 1; }
+
+# OpenJDK17U-jre_x64_linux_hotspot_17.0.21.1_2.tar.gz
+BASE="$(basename "$SRC")"
+if [[ ! "$BASE" =~ ^OpenJDK([0-9]+)U-jre_x64_(linux|mac|windows)_ ]]; then
+  echo "unrecognized filename: $BASE"
+  exit 1
+fi
+MAJOR="${BASH_REMATCH[1]}"
+OS="${BASH_REMATCH[2]}"
+
+case "$OS" in
+  linux)   PLATFORM=linux ;;
+  mac)     PLATFORM=macos ;;
+  windows) PLATFORM=window ;;
+esac
+
+DEST="$ROOT/dist/$PLATFORM/v$MAJOR/newjre"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+case "$BASE" in
+  *.zip)    unzip -q "$SRC" -d "$TMP" ;;
+  *.tar.gz) tar -xzf "$SRC" -C "$TMP" ;;
+  *.tgz)    tar -xzf "$SRC" -C "$TMP" ;;
+  *.tar)    tar -xf "$SRC" -C "$TMP" ;;
+  *) echo "unsupported archive: $BASE"; exit 1 ;;
+esac
+
+# Adoptium root: jdk-*-jre[/Contents/Home]
+ROOTDIR="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d | head -1)"
+[[ -n "$ROOTDIR" ]] || { echo "empty archive"; exit 1; }
+if [[ "$PLATFORM" == macos && -d "$ROOTDIR/Contents/Home" ]]; then
+  ROOTDIR="$ROOTDIR/Contents/Home"
+fi
+
+rm -rf "$DEST"
+mkdir -p "$(dirname "$DEST")"
+mv "$ROOTDIR" "$DEST"
+
+echo "→ $DEST"
